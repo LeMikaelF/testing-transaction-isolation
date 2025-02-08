@@ -10,7 +10,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import lombok.SneakyThrows;
@@ -29,7 +28,8 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
     @BeforeEach
     void beforeEach() {
         transactionTemplate = new TransactionTemplate(platformTransactionManager);
-        transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
+        // uncomment this to make the test fail
+        // transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
 
         jdbcTemplate.execute("drop table if exists t");
         jdbcTemplate.execute("create table t (num int)");
