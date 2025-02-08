@@ -11,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -21,7 +20,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import lombok.SneakyThrows;
 
 @SpringBootTest
-@Import(TestcontainersConfiguration.class)
 class MysqlTransactionTestApplicationTests implements WithAssertions {
 
     private static final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
