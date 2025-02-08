@@ -1,10 +1,6 @@
 package com.mikaelfrancoeur.mysqltransactiontest;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,8 +17,6 @@ import lombok.SneakyThrows;
 
 @SpringBootTest
 class MysqlTransactionTestApplicationTests implements WithAssertions {
-
-    private static final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -56,7 +50,7 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
         }
     }
 
-    private void raceSqlThreads() throws InterruptedException, ExecutionException {
+    private void raceSqlThreads() throws InterruptedException {
         jdbcTemplate.execute("truncate t");
 
         // language=SQL
@@ -65,7 +59,7 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
         CountDownLatch latch = new CountDownLatch(1);
 
         //noinspection Convert2Lambda
-        Future<?> otherThread = executorService.submit(new Runnable() {
+        Thread otherThread = new Thread(new Runnable() {
             @Override
             @SneakyThrows
             public void run() {
@@ -82,10 +76,11 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
             }
         });
 
+        otherThread.start();
         latch.countDown();
         jdbcTemplate.execute(insertSql);
 
-        otherThread.get();
+        otherThread.join();
     }
 
     private void assertNoPhantomRead() {
