@@ -1,7 +1,5 @@
 package com.mikaelfrancoeur.mysqltransactiontest;
 
-import java.util.concurrent.CountDownLatch;
-
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,8 +9,6 @@ import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.util.function.ThrowingFunction;
-import org.springframework.util.function.ThrowingSupplier;
 
 import lombok.SneakyThrows;
 
@@ -58,21 +54,13 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
         // language=SQL
         String insertSql = "insert into t select (select 1 where not exists (select * from t where num = 1))";
 
-        CountDownLatch latch = new CountDownLatch(1);
-
         Thread otherThread = new Thread(() ->
                 transactionTemplate.execute(_ -> {
-                    try {
-                        latch.await();
-                        jdbcTemplate.execute(insertSql);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+                    jdbcTemplate.execute(insertSql);
                     return null;
                 }));
 
         otherThread.start();
-        latch.countDown();
         jdbcTemplate.execute(insertSql);
 
         otherThread.join();
