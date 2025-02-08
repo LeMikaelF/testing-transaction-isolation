@@ -15,6 +15,7 @@ import lombok.SneakyThrows;
 @SpringBootTest
 class MysqlTransactionTestApplicationTests implements WithAssertions {
 
+    private static final int NUM_EXPECTED_DEADLOCKS = 1;
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
@@ -36,7 +37,7 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
     @Test
     @SneakyThrows
     void testIsolation() {
-        for (int numDeadlocks = 0; numDeadlocks < 1; ) {
+        for (int numDeadlocks = 0; numDeadlocks < NUM_EXPECTED_DEADLOCKS; ) {
             Exception deadlock = catchThrowableOfType(CannotAcquireLockException.class, this::raceSqlThreads);
 
             if (deadlock != null) {
