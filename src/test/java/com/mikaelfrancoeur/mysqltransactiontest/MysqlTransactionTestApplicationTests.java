@@ -11,6 +11,8 @@ import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.function.ThrowingFunction;
+import org.springframework.util.function.ThrowingSupplier;
 
 import lombok.SneakyThrows;
 
@@ -38,7 +40,7 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
     @Test
     @SneakyThrows
     void testIsolation() {
-        for (int numDeadlocks = 0; numDeadlocks < 1;) {
+        for (int numDeadlocks = 0; numDeadlocks < 1; ) {
             Exception deadlock = catchThrowableOfType(CannotAcquireLockException.class, this::raceSqlThreads);
 
             if (deadlock != null) {
@@ -58,12 +60,7 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
 
         CountDownLatch latch = new CountDownLatch(1);
 
-        //noinspection Convert2Lambda
-        Thread otherThread = new Thread(new Runnable() {
-            @Override
-            @SneakyThrows
-            public void run() {
-
+        Thread otherThread = new Thread(() ->
                 transactionTemplate.execute(_ -> {
                     try {
                         latch.await();
@@ -72,9 +69,7 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
                         throw new RuntimeException(e);
                     }
                     return null;
-                });
-            }
-        });
+                }));
 
         otherThread.start();
         latch.countDown();
