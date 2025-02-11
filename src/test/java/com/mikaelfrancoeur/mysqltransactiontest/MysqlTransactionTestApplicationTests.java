@@ -53,7 +53,7 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
         jdbcTemplate.execute("truncate t");
 
         // language=SQL
-        String insertSql = "insert into t select (select 1 where not exists (select * from t where num = 1))";
+        String insertSql = "insert into t select 1 where not exists (select * from t where num = 1)";
 
         Thread otherThread = new Thread(() ->
                 transactionTemplate.execute(_ -> {
