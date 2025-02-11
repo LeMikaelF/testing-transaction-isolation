@@ -4,6 +4,7 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
 import org.assertj.core.api.WithAssertions;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import lombok.SneakyThrows;
@@ -61,16 +64,12 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
         CyclicBarrier barrier = new CyclicBarrier(2);
 
         Thread otherThread = new Thread(() ->
-                transactionTemplate.execute(_ -> {
-                    try {
-                        barrier.await();
-                        Thread.sleep(1);
-                        jdbcTemplate.execute(insertSql);
-                    } catch (InterruptedException | BrokenBarrierException e) {
-                        // no-op
-                    }
+                transactionTemplate.execute(throwing(_ -> {
+                    barrier.await();
+                    Thread.sleep(1);
+                    jdbcTemplate.execute(insertSql);
                     return null;
-                }));
+                })));
 
         otherThread.start();
         barrier.await();
@@ -86,4 +85,17 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
                 .isEqualTo(1);
     }
 
+    private interface ThrowingCallback<T> extends TransactionCallback<T> {
+        @Override
+        @SneakyThrows
+        default T doInTransaction(@NotNull TransactionStatus status) {
+            return doThrowing(status);
+        }
+
+        T doThrowing(TransactionStatus status) throws Exception;
+    }
+
+    private <T> TransactionCallback<T> throwing(ThrowingCallback<T> callback) {
+        return callback;
+    }
 }
