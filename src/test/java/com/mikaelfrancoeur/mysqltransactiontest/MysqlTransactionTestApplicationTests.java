@@ -1,5 +1,8 @@
 package com.mikaelfrancoeur.mysqltransactiontest;
 
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+
 import org.assertj.core.api.WithAssertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,19 +52,28 @@ class MysqlTransactionTestApplicationTests implements WithAssertions {
         }
     }
 
-    private void raceSqlThreads() throws InterruptedException {
+    private void raceSqlThreads() throws InterruptedException, BrokenBarrierException {
         jdbcTemplate.execute("truncate t");
 
         // language=SQL
         String insertSql = "insert into t select 1 where not exists (select * from t where num = 1)";
 
+        CyclicBarrier barrier = new CyclicBarrier(2);
+
         Thread otherThread = new Thread(() ->
                 transactionTemplate.execute(_ -> {
-                    jdbcTemplate.execute(insertSql);
+                    try {
+                        barrier.await();
+                        Thread.sleep(1);
+                        jdbcTemplate.execute(insertSql);
+                    } catch (InterruptedException | BrokenBarrierException e) {
+                        // no-op
+                    }
                     return null;
                 }));
 
         otherThread.start();
+        barrier.await();
         jdbcTemplate.execute(insertSql);
 
         otherThread.join();
